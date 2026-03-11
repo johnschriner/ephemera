@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Admin · Ephemera{% endblock %}
+{% block content %}
+<section class="hero-card admin-hero">
+    <div>
+        <h1>Moderation</h1>
+        <p>Approve what should remain visible on the wall. Reject anything else.</p>
+    </div>
+    <div class="hero-stats">
+        <div class="stat-card">
+            <span class="stat-number">{{ pending|length }}</span>
+            <span class="stat-label">pending</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ approved|length }}</span>
+            <span class="stat-label">recent approved shown</span>
+        </div>
+    </div>
+</section>
+
+<section class="admin-section">
+    <h2>Pending</h2>
+    <div class="gallery-grid admin-grid">
+        {% for img in pending %}
+            <div class="tile admin-tile-static">
+                <div class="media-frame">
+                    {% if img.media_type == "video" %}
+                        <video class="media-el" preload="none" muted playsinline>
+                            <source src="{{ url_for('static', filename='uploads/' ~ img.filename) }}">
+                        </video>
+                    {% else %}
+                        <img class="media-el" src="{{ url_for('static', filename='uploads/' ~ img.filename) }}" alt="{{ img.caption or 'uploaded media' }}">
+                    {% endif %}
+                </div>
+                <div class="tile-meta">
+                    <p class="tile-caption">{{ img.caption or "Untitled ephemera" }}</p>
+                    <p class="tile-subtle">{{ img.media_type }}</p>
+                    <div class="admin-actions">
+                        <form method="POST" action="{{ url_for('approve', image_id=img.id) }}">
+                            <button class="button" type="submit">Approve</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('reject', image_id=img.id) }}">
+                            <button class="button danger-button" type="submit">Reject</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h2>No pending uploads</h2>
+                <p>The queue is clear.</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="admin-section">
+    <h2>Recent approved</h2>
+    <div class="gallery-grid admin-grid">
+        {% for img in approved %}
+            <a class="tile" href="{{ url_for('image', image_id=img.id) }}">
+                <div class="media-frame">
+                    {% if img.media_type == "video" %}
+                        <video class="media-el" preload="none" muted playsinline>
+                            <source src="{{ url_for('static', filename='uploads/' ~ img.filename) }}">
+                        </video>
+                    {% else %}
+                        <img class="media-el" src="{{ url_for('static', filename='uploads/' ~ img.filename) }}" alt="{{ img.caption or 'uploaded media' }}">
+                    {% endif %}
+                </div>
+                <div class="tile-meta">
+                    <p class="tile-caption">{{ img.caption or "Untitled ephemera" }}</p>
+                    <p class="tile-subtle">approved</p>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

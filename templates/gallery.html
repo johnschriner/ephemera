@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Ephemera{% endblock %}
+{% block content %}
+<section class="hero-card">
+    <div>
+        <h1>Ephemera</h1>
+        <p>
+            New uploads appear after approval.
+        </p>
+    </div>
+    <div class="hero-stats">
+        <div class="stat-card">
+            <span class="stat-number">{{ approved_count }}</span>
+            <span class="stat-label">approved live now</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ fading_count }}</span>
+            <span class="stat-label">fading awayyyyy</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ max_approved }}</span>
+            <span class="stat-label">max approved kept</span>
+        </div>
+    </div>
+</section>
+
+<section class="gallery-grid">
+    {% for img in images %}
+        <a class="tile" href="{{ url_for('image', image_id=img.id) }}">
+            <a class="tile" href="{{ url_for('image', image_id=img.id) }}">
+                {% if img.media_type == "video" %}
+                    <video
+                        preload="metadata"
+                        muted
+                        playsinline
+                    >
+                        <source src="{{ url_for('static', filename='uploads/' ~ img.filename) }}">
+                    </video>
+                {% else %}
+                    <img
+                        src="{{ url_for('static', filename='uploads/' ~ img.filename) }}"
+                        class="{% if img.status != 'approved' %}blur{% endif %}"
+                        alt="{{ img.caption or 'uploaded media' }}"
+                    >
+                {% endif %}
+
+                {% if img.status != 'approved' %}
+                    <div class="pending-label">Pending approval</div>
+                {% endif %}
+
+                {% if img.fading %}
+                    <div class="fading-label">fading awayyyyy...</div>
+                {% endif %}
+
+                <div class="tile-caption">
+                    <div class="tile-title">
+                        {{ img.caption or "Untitled ephemera" }}
+                    </div>
+                    <div class="tile-meta">
+                        {{ img.media_type }} · {{ img.status }}
+                    </div>
+                </div>
+            </a>
+    {% else %}
+        <div class="empty-state">
+            <h2>Nothing here yet</h2>
+            <p>Upload the first thing and let the wall start disappearing.</p>
+            <a class="button" href="{{ url_for('upload') }}">Upload something</a>
+        </div>
+    {% endfor %}
+</section>
+{% endblock %}

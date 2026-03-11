@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}View · Ephemera{% endblock %}
+{% block content %}
+<section class="detail-card">
+    <div class="detail-media-wrap">
+        {% if image.media_type == "video" %}
+            <video controls playsinline class="detail-media">
+                <source src="{{ url_for('static', filename='uploads/' ~ image.filename) }}">
+            </video>
+        {% else %}
+            <img
+                src="{{ url_for('static', filename='uploads/' ~ image.filename) }}"
+                class="detail-media"
+                alt="{{ image.caption or 'uploaded media' }}"
+            >
+        {% endif %}
+    </div>
+
+    <div class="detail-meta">
+        <h1>{{ image.caption or "Untitled ephemera" }}</h1>
+        <p class="helper-text">{{ image.media_type }} · {{ image.status }}</p>
+        {% if image.status != 'approved' %}
+            <p class="helper-text">This item is still masked on the main gallery page.</p>
+        {% endif %}
+        <a class="button ghost-button" href="{{ url_for('gallery') }}">Back to gallery</a>
+    </div>
+</section>
+{% endblock %}

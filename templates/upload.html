@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Upload · Ephemera{% endblock %}
+{% block content %}
+<section class="form-card narrow-card">
+    <h1>Upload to Ephemera</h1>
+    <p class="helper-text">Images, GIFs, MP4, and WebM are allowed. Pending uploads will be masked in the gallery until approved.</p>
+
+    <form method="POST" enctype="multipart/form-data" class="stack-form">
+        <label class="field-label" for="image">File</label>
+        <input id="image" class="input-file" type="file" name="image" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm" required>
+
+        <label class="field-label" for="caption">Caption</label>
+        <input id="caption" class="input-text" type="text" name="caption" placeholder="optional caption">
+
+        <button class="button" type="submit">Upload</button>
+    </form>
+</section>
+{% endblock %}

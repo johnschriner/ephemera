@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Admin Login · Ephemera{% endblock %}
+{% block content %}
+<section class="form-card narrow-card">
+    <h1>Admin login</h1>
+    <form method="POST" class="stack-form">
+        <label class="field-label" for="password">Password</label>
+        <input id="password" class="input-text" type="password" name="password" required>
+        <button class="button" type="submit">Login</button>
+    </form>
+</section>
+{% endblock %}
