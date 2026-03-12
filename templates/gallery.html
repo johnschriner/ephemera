@@ -6,12 +6,13 @@
 <section class="hero-card">
     <h1 class="hero-title">Ephemera</h1>
     <p class="hero-copy">
-        A rolling gallery of images and video. New uploads are marked for approval,
-        then briefly live here before fading away.
+        A rolling gallery of images and video. New uploads appear right away in masked form,
+        then become fully visible once approved.
     </p>
     <div class="hero-meta">
         <span class="meta-pill">{{ images|length }} visible artifacts</span>
-        <span class="meta-pill">last 5 are fading awayyyyy…</span>
+        <span class="meta-pill">pending uploads are masked</span>
+        <span class="meta-pill">oldest approved 5 are fading awayyyyy…</span>
     </div>
 </section>
 
@@ -22,6 +23,7 @@
                 <a class="tile" href="{{ url_for('image', image_id=img.id) }}">
                     {% if img.media_type == "video" %}
                         <video
+                            class="{% if img.status != 'approved' %}blur{% endif %}"
                             preload="metadata"
                             muted
                             playsinline
@@ -31,8 +33,13 @@
                     {% else %}
                         <img
                             src="{{ img.file_url }}"
+                            class="{% if img.status != 'approved' %}blur{% endif %}"
                             alt="{{ img.caption or 'uploaded media' }}"
                         >
+                    {% endif %}
+
+                    {% if img.status != 'approved' %}
+                        <div class="pending-label">Pending approval</div>
                     {% endif %}
 
                     {% if img.fading %}

@@ -6,12 +6,12 @@ from flask import (
 )
 from dotenv import load_dotenv
 
+load_dotenv()
+
 from config import Config
 from models import init_db, get_db
 from storage import allowed_file, prepare_upload
 from r2_storage import upload_fileobj_to_r2, delete_from_r2
-
-load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -81,23 +81,22 @@ def gallery():
     cleanup_old_pending()
 
     db = get_db()
-    images = db.execute(
+    rows = db.execute(
         """
-        SELECT * FROM images
-        WHERE status = 'approved'
-        ORDER BY uploaded_at DESC
-        LIMIT ?
-        """,
-        (app.config["MAX_APPROVED_IMAGES"],)
+        SELECT *
+        FROM images
+        WHERE status IN ('pending', 'approved')
+        ORDER BY uploaded_at DESC, id DESC
+        """
     ).fetchall()
 
-    images = list(images)
-    fade_start = max(len(images) - 5, 0)
+    images = [dict(row) for row in rows]
+
+    approved_positions = [i for i, img in enumerate(images) if img["status"] == "approved"]
+    fading_positions = set(approved_positions[-5:]) if approved_positions else set()
 
     for i, img in enumerate(images):
-        img = dict(img)
-        img["fading"] = i >= fade_start
-        images[i] = img
+        img["fading"] = i in fading_positions
 
     return render_template("gallery.html", images=images)
 
@@ -139,6 +138,7 @@ def upload():
             return redirect(url_for("gallery"))
 
         except Exception as e:
+            app.logger.exception("Upload failed")
             flash(f"Upload failed: {e}", "error")
             return redirect(url_for("upload"))
 
@@ -149,7 +149,12 @@ def upload():
 def image(image_id):
     db = get_db()
     image = db.execute(
-        "SELECT * FROM images WHERE id = ?",
+        """
+        SELECT *
+        FROM images
+        WHERE id = ?
+        AND status IN ('pending', 'approved')
+        """,
         (image_id,)
     ).fetchone()
 
@@ -188,11 +193,11 @@ def admin_dashboard():
     db = get_db()
 
     pending = db.execute(
-        "SELECT * FROM images WHERE status='pending' ORDER BY uploaded_at DESC"
+        "SELECT * FROM images WHERE status = 'pending' ORDER BY uploaded_at DESC, id DESC"
     ).fetchall()
 
     approved = db.execute(
-        "SELECT * FROM images WHERE status='approved' ORDER BY uploaded_at DESC LIMIT 50"
+        "SELECT * FROM images WHERE status = 'approved' ORDER BY uploaded_at DESC, id DESC LIMIT 50"
     ).fetchall()
 
     return render_template("admin.html", pending=pending, approved=approved)
@@ -205,12 +210,13 @@ def approve(image_id):
 
     db = get_db()
     db.execute(
-        "UPDATE images SET status='approved' WHERE id = ?",
+        "UPDATE images SET status = 'approved' WHERE id = ?",
         (image_id,)
     )
     db.commit()
 
     enforce_approved_limit()
+    flash("Approved.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -237,6 +243,7 @@ def reject(image_id):
     db.execute("DELETE FROM images WHERE id = ?", (image_id,))
     db.commit()
 
+    flash("Removed.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
