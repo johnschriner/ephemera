@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
@@ -11,13 +12,77 @@ load_dotenv()
 from config import Config
 from models import init_db, get_db
 from storage import allowed_file, prepare_upload
-from r2_storage import upload_fileobj_to_r2, delete_from_r2
+from r2_storage import (
+    upload_fileobj_to_r2,
+    delete_from_r2,
+    list_r2_objects,
+    get_object_metadata,
+    infer_media_type_from_key,
+    update_object_metadata,
+    get_public_url,
+)
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 with app.app_context():
     init_db()
+
+_bucket_restore_checked = False
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def ensure_db_restored_from_r2():
+    global _bucket_restore_checked
+
+    if _bucket_restore_checked:
+        return
+
+    db = get_db()
+    row = db.execute("SELECT COUNT(*) AS count FROM images").fetchone()
+    count = row["count"] if row else 0
+
+    if count > 0:
+        _bucket_restore_checked = True
+        return
+
+    objects = list_r2_objects()
+
+    for obj in objects:
+        key = obj["key"]
+        metadata = get_object_metadata(key)
+
+        caption = metadata.get("caption", "").strip()
+        status = metadata.get("status", "").strip().lower() or "approved"
+        if status not in {"pending", "approved"}:
+            status = "approved"
+
+        media_type = metadata.get("media_type", "").strip().lower()
+        if media_type not in {"image", "video"}:
+            media_type = infer_media_type_from_key(key) or "image"
+
+        uploaded_at = metadata.get("uploaded_at", "").strip()
+        if not uploaded_at:
+            last_modified = obj.get("last_modified")
+            if last_modified:
+                uploaded_at = last_modified.astimezone(timezone.utc).isoformat()
+            else:
+                uploaded_at = now_iso()
+
+        db.execute(
+            """
+            INSERT INTO images
+            (filename, file_url, storage_key, caption, status, media_type, uploaded_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (key, get_public_url(key), key, caption, status, media_type, uploaded_at),
+        )
+
+    db.commit()
+    _bucket_restore_checked = True
 
 
 def enforce_approved_limit():
@@ -79,6 +144,7 @@ def cleanup_old_pending():
 
 @app.route("/")
 def gallery():
+    ensure_db_restored_from_r2()
     cleanup_old_pending()
 
     db = get_db()
@@ -118,10 +184,16 @@ def upload():
 
         try:
             prepared_file, media_type = prepare_upload(file)
+            uploaded_at = now_iso()
+
             storage_key, file_url = upload_fileobj_to_r2(
                 prepared_file,
                 file.filename,
-                file.content_type
+                file.content_type,
+                caption=caption,
+                status="pending",
+                media_type=media_type,
+                uploaded_at=uploaded_at,
             )
 
             db = get_db()
@@ -129,9 +201,9 @@ def upload():
                 """
                 INSERT INTO images
                 (filename, file_url, storage_key, caption, status, media_type, uploaded_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (file.filename, file_url, storage_key, caption, "pending", media_type),
+                (file.filename, file_url, storage_key, caption, "pending", media_type, uploaded_at),
             )
             db.commit()
 
@@ -148,6 +220,8 @@ def upload():
 
 @app.route("/image/<int:image_id>")
 def image(image_id):
+    ensure_db_restored_from_r2()
+
     db = get_db()
     image = db.execute(
         """
@@ -188,6 +262,8 @@ def admin_logout():
 
 @app.route("/admin")
 def admin_dashboard():
+    ensure_db_restored_from_r2()
+
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
@@ -206,15 +282,39 @@ def admin_dashboard():
 
 @app.route("/admin/approve/<int:image_id>", methods=["POST"])
 def approve(image_id):
+    ensure_db_restored_from_r2()
+
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
     db = get_db()
+    row = db.execute(
+        """
+        SELECT id, storage_key, caption, media_type, uploaded_at
+        FROM images
+        WHERE id = ?
+        """,
+        (image_id,)
+    ).fetchone()
+
+    if not row:
+        flash("That item does not exist.", "error")
+        return redirect(url_for("admin_dashboard"))
+
     db.execute(
         "UPDATE images SET status = 'approved' WHERE id = ?",
         (image_id,)
     )
     db.commit()
+
+    if row["storage_key"]:
+        update_object_metadata(
+            key=row["storage_key"],
+            caption=row["caption"] or "",
+            status="approved",
+            media_type=row["media_type"] or infer_media_type_from_key(row["storage_key"]) or "image",
+            uploaded_at=row["uploaded_at"] or now_iso(),
+        )
 
     enforce_approved_limit()
     flash("Approved.", "success")
@@ -223,6 +323,8 @@ def approve(image_id):
 
 @app.route("/admin/reject/<int:image_id>", methods=["POST"])
 def reject(image_id):
+    ensure_db_restored_from_r2()
+
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
