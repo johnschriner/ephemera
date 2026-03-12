@@ -16,7 +16,8 @@ from r2_storage import upload_fileobj_to_r2, delete_from_r2
 app = Flask(__name__)
 app.config.from_object(Config)
 
-init_db()
+with app.app_context():
+    init_db()
 
 
 def enforce_approved_limit():
