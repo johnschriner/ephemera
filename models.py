@@ -1,7 +1,7 @@
 import sqlite3
+import os
 
-DB_PATH = "ephemera.db"
-
+DB_PATH = os.path.join(os.getcwd(), "ephemera.db")
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
