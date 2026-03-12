@@ -1,18 +1,18 @@
-import os
-import uuid
+from io import BytesIO
 from PIL import Image
+
 from config import Config
 
 
-def get_extension(filename: str) -> str:
+def get_extension(filename):
     return filename.rsplit(".", 1)[1].lower()
 
 
-def allowed_file(filename: str) -> bool:
+def allowed_file(filename):
     return "." in filename and get_extension(filename) in Config.ALLOWED_EXTENSIONS
 
 
-def get_media_type(filename: str) -> str | None:
+def get_media_type(filename):
     ext = get_extension(filename)
     if ext in Config.IMAGE_EXTENSIONS:
         return "image"
@@ -21,25 +21,26 @@ def get_media_type(filename: str) -> str | None:
     return None
 
 
-def save_upload(file_storage):
-    ext = get_extension(file_storage.filename)
-    filename = f"{uuid.uuid4()}.{ext}"
-    os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
-    path = os.path.join(Config.UPLOAD_FOLDER, filename)
-
-    media_type = get_media_type(file_storage.filename)
+def prepare_upload(file):
+    media_type = get_media_type(file.filename)
 
     if media_type == "image":
-        image = Image.open(file_storage)
+        image = Image.open(file)
         image.verify()
 
-        file_storage.seek(0)
-        image = Image.open(file_storage)
-        image.save(path)
-    elif media_type == "video":
-        file_storage.seek(0)
-        file_storage.save(path)
-    else:
-        raise ValueError("Unsupported media type")
+        file.seek(0)
+        image = Image.open(file)
 
-    return filename, media_type
+        output = BytesIO()
+        save_format = image.format if image.format else "PNG"
+        image.save(output, format=save_format)
+        output.seek(0)
+        return output, media_type
+
+    if media_type == "video":
+        file.seek(0)
+        data = BytesIO(file.read())
+        data.seek(0)
+        return data, media_type
+
+    raise ValueError("Unsupported media type")

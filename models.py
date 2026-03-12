@@ -11,25 +11,31 @@ def get_db():
 
 def init_db():
     db = get_db()
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS images (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            filename TEXT NOT NULL,
-            caption TEXT,
-            status TEXT NOT NULL DEFAULT 'pending',
-            media_type TEXT NOT NULL DEFAULT 'image',
-            uploaded_at TEXT NOT NULL,
-            approved_at TEXT
-        )
-        """
+
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT,
+        file_url TEXT,
+        storage_key TEXT,
+        caption TEXT,
+        status TEXT,
+        media_type TEXT,
+        uploaded_at TEXT
     )
+    """)
     db.commit()
 
     cols = [row["name"] for row in db.execute("PRAGMA table_info(images)").fetchall()]
+
     if "media_type" not in cols:
         db.execute("ALTER TABLE images ADD COLUMN media_type TEXT DEFAULT 'image'")
         db.commit()
-    if "approved_at" not in cols:
-        db.execute("ALTER TABLE images ADD COLUMN approved_at TEXT")
+
+    if "file_url" not in cols:
+        db.execute("ALTER TABLE images ADD COLUMN file_url TEXT")
+        db.commit()
+
+    if "storage_key" not in cols:
+        db.execute("ALTER TABLE images ADD COLUMN storage_key TEXT")
         db.commit()

@@ -1,79 +1,103 @@
 {% extends "base.html" %}
+
 {% block title %}Admin · Ephemera{% endblock %}
+
 {% block content %}
 <section class="hero-card admin-hero">
-    <div>
-        <h1>Moderation</h1>
-        <p>Approve what should remain visible on the wall. Reject anything else.</p>
-    </div>
-    <div class="hero-stats">
-        <div class="stat-card">
-            <span class="stat-number">{{ pending|length }}</span>
-            <span class="stat-label">pending</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-number">{{ approved|length }}</span>
-            <span class="stat-label">recent approved shown</span>
-        </div>
+    <h1 class="hero-title">Admin Dashboard</h1>
+    <p class="hero-copy">
+        Review pending uploads, approve what should surface, and reject what should disappear.
+    </p>
+    <div class="hero-meta">
+        <span class="meta-pill">{{ pending|length }} pending</span>
+        <span class="meta-pill">{{ approved|length }} recent approved</span>
+        <span class="meta-pill">gallery limit: 50</span>
     </div>
 </section>
 
 <section class="admin-section">
-    <h2>Pending</h2>
-    <div class="gallery-grid admin-grid">
-        {% for img in pending %}
-            <div class="tile admin-tile-static">
-                <div class="media-frame">
-                    {% if img.media_type == "video" %}
-                        <video class="media-el" preload="none" muted playsinline>
-                            <source src="{{ url_for('static', filename='uploads/' ~ img.filename) }}">
-                        </video>
-                    {% else %}
-                        <img class="media-el" src="{{ url_for('static', filename='uploads/' ~ img.filename) }}" alt="{{ img.caption or 'uploaded media' }}">
-                    {% endif %}
-                </div>
-                <div class="tile-meta">
-                    <p class="tile-caption">{{ img.caption or "Untitled ephemera" }}</p>
-                    <p class="tile-subtle">{{ img.media_type }}</p>
+    <h2 class="section-heading">Pending</h2>
+
+    {% if pending %}
+        <div class="gallery-grid admin-grid">
+            {% for img in pending %}
+                <div class="admin-tile-static">
+                    <div class="admin-preview">
+                        {% if img.media_type == "video" %}
+                            <video preload="metadata" muted playsinline>
+                                <source src="{{ img.file_url }}">
+                            </video>
+                        {% else %}
+                            <img
+                                src="{{ img.file_url }}"
+                                alt="{{ img.caption or 'uploaded media' }}"
+                            >
+                        {% endif %}
+                    </div>
+
+                    <div class="admin-meta">
+                        <p class="admin-caption">{{ img.caption or "Untitled ephemera" }}</p>
+                        <p class="admin-subtle">{{ img.media_type }} · {{ img.status }}</p>
+                        <p class="admin-subtle">{{ img.uploaded_at }}</p>
+                    </div>
+
                     <div class="admin-actions">
                         <form method="POST" action="{{ url_for('approve', image_id=img.id) }}">
-                            <button class="button" type="submit">Approve</button>
+                            <button type="submit" class="button button-success">Approve</button>
                         </form>
+
                         <form method="POST" action="{{ url_for('reject', image_id=img.id) }}">
-                            <button class="button danger-button" type="submit">Reject</button>
+                            <button type="submit" class="button button-danger">Reject</button>
                         </form>
+
+                        <a class="nav-link" href="{{ url_for('image', image_id=img.id) }}">Open</a>
                     </div>
                 </div>
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <h2>No pending uploads</h2>
-                <p>The queue is clear.</p>
-            </div>
-        {% endfor %}
-    </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            No pending uploads right now.
+        </div>
+    {% endif %}
 </section>
 
 <section class="admin-section">
-    <h2>Recent approved</h2>
-    <div class="gallery-grid admin-grid">
-        {% for img in approved %}
-            <a class="tile" href="{{ url_for('image', image_id=img.id) }}">
-                <div class="media-frame">
-                    {% if img.media_type == "video" %}
-                        <video class="media-el" preload="none" muted playsinline>
-                            <source src="{{ url_for('static', filename='uploads/' ~ img.filename) }}">
-                        </video>
-                    {% else %}
-                        <img class="media-el" src="{{ url_for('static', filename='uploads/' ~ img.filename) }}" alt="{{ img.caption or 'uploaded media' }}">
-                    {% endif %}
+    <h2 class="section-heading">Recent Approved</h2>
+
+    {% if approved %}
+        <div class="gallery-grid admin-grid">
+            {% for img in approved %}
+                <div class="admin-tile-static">
+                    <div class="admin-preview">
+                        {% if img.media_type == "video" %}
+                            <video preload="metadata" muted playsinline>
+                                <source src="{{ img.file_url }}">
+                            </video>
+                        {% else %}
+                            <img
+                                src="{{ img.file_url }}"
+                                alt="{{ img.caption or 'uploaded media' }}"
+                            >
+                        {% endif %}
+                    </div>
+
+                    <div class="admin-meta">
+                        <p class="admin-caption">{{ img.caption or "Untitled ephemera" }}</p>
+                        <p class="admin-subtle">{{ img.media_type }} · {{ img.status }}</p>
+                        <p class="admin-subtle">{{ img.uploaded_at }}</p>
+                    </div>
+
+                    <div class="admin-actions">
+                        <a class="nav-link" href="{{ url_for('image', image_id=img.id) }}">Open</a>
+                    </div>
                 </div>
-                <div class="tile-meta">
-                    <p class="tile-caption">{{ img.caption or "Untitled ephemera" }}</p>
-                    <p class="tile-subtle">approved</p>
-                </div>
-            </a>
-        {% endfor %}
-    </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            No approved items yet.
+        </div>
+    {% endif %}
 </section>
 {% endblock %}

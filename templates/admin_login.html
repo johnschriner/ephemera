@@ -1,12 +1,22 @@
 {% extends "base.html" %}
+
 {% block title %}Admin Login · Ephemera{% endblock %}
+
 {% block content %}
-<section class="form-card narrow-card">
-    <h1>Admin login</h1>
-    <form method="POST" class="stack-form">
-        <label class="field-label" for="password">Password</label>
-        <input id="password" class="input-text" type="password" name="password" required>
-        <button class="button" type="submit">Login</button>
+<section class="form-card">
+    <h1>Admin Login</h1>
+    <p class="form-help">Moderate pending uploads and manage the rolling gallery.</p>
+
+    <form method="POST" class="form-grid">
+        <div class="form-row">
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" required>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="button button-primary">Login</button>
+            <a class="nav-link" href="{{ url_for('gallery') }}">Back</a>
+        </div>
     </form>
 </section>
 {% endblock %}

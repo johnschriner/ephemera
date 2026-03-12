@@ -7,37 +7,40 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="page-shell">
+    <div class="site-shell">
         <header class="site-header">
-            <div>
-                <a class="brand" href="{{ url_for('gallery') }}">Ephemera</a>
+            <div class="brand">
+                <div class="brand-mark">✦</div>
+                <div>
+                    <p class="brand-title"><a href="{{ url_for('gallery') }}">Ephemera</a></p>
+                    <p class="brand-subtitle">a temporary gallery of passing things</p>
+                </div>
             </div>
-            <nav class="site-nav">
-                <a class="nav-link" href="{{ url_for('gallery') }}">Gallery</a>
-                <a class="nav-link nav-cta" href="{{ url_for('upload') }}">Upload</a>
+
+            <nav class="top-nav">
+                <a class="nav-link button-primary" href="{{ url_for('upload') }}">Upload</a>
+                <a class="nav-link" href="{{ url_for('terms') }}">Terms</a>
+
                 {% if session.get('admin') %}
-                <nav>
-                    <a href="{{ url_for('admin_dashboard') }}">Admin</a>
-                    <a href="{{ url_for('admin_logout') }}">Logout</a>
-                </nav>
+                    <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Admin</a>
+                    <a class="nav-link" href="{{ url_for('admin_logout') }}">Logout</a>
                 {% endif %}
             </nav>
         </header>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="flash-stack">
+                <ul class="flash-list">
                     {% for category, message in messages %}
-                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                        <li class="flash flash-{{ category }}">{{ message }}</li>
                     {% endfor %}
-                </div>
+                </ul>
             {% endif %}
         {% endwith %}
 
         {% block content %}{% endblock %}
+
+        <footer class="footer-space"></footer>
     </div>
-<footer class="footer">
-    <a href="{{ url_for('terms') }}">Terms</a>
-</footer>
 </body>
 </html>

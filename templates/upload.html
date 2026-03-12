@@ -1,18 +1,41 @@
 {% extends "base.html" %}
+
 {% block title %}Upload · Ephemera{% endblock %}
+
 {% block content %}
-<section class="form-card narrow-card">
+<section class="form-card">
     <h1>Upload to Ephemera</h1>
-    <p class="helper-text">Images, GIFs, MP4, and WebM are allowed. Pending uploads will be masked in the gallery until approved.</p>
+    <p class="form-help">
+        Images and short videos are welcome. Uploads are marked for approval before appearing in the main gallery.
+    </p>
 
-    <form method="POST" enctype="multipart/form-data" class="stack-form">
-        <label class="field-label" for="image">File</label>
-        <input id="image" class="input-file" type="file" name="image" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm" required>
+    <form method="POST" enctype="multipart/form-data" class="form-grid">
+        <div class="form-row">
+            <label for="image">File</label>
+            <input
+                id="image"
+                type="file"
+                name="image"
+                accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm"
+                required
+            >
+        </div>
 
-        <label class="field-label" for="caption">Caption</label>
-        <input id="caption" class="input-text" type="text" name="caption" placeholder="optional caption">
+        <div class="form-row">
+            <label for="caption">Caption</label>
+            <input
+                id="caption"
+                type="text"
+                name="caption"
+                maxlength="200"
+                placeholder="optional caption"
+            >
+        </div>
 
-        <button class="button" type="submit">Upload</button>
+        <div class="form-actions">
+            <button type="submit" class="button button-primary">Upload</button>
+            <a class="nav-link" href="{{ url_for('gallery') }}">Back to gallery</a>
+        </div>
     </form>
 </section>
 {% endblock %}
