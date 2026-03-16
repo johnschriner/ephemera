@@ -85,24 +85,24 @@ def ensure_db_restored_from_r2():
     _bucket_restore_checked = True
 
 
-def enforce_approved_limit():
+def enforce_gallery_limit():
     db = get_db()
 
-    approved = db.execute(
+    rows = db.execute(
         """
         SELECT id, filename, storage_key
         FROM images
-        WHERE status = 'approved'
+        WHERE status IN ('pending', 'approved')
         ORDER BY uploaded_at DESC, id DESC
         """
     ).fetchall()
 
-    max_items = app.config["MAX_APPROVED_IMAGES"]
+    max_items = app.config["MAX_GALLERY_ITEMS"]
 
-    if len(approved) <= max_items:
+    if len(rows) <= max_items:
         return
 
-    to_delete = approved[max_items:]
+    to_delete = rows[max_items:]
 
     for row in to_delete:
         if row["storage_key"]:
@@ -146,6 +146,7 @@ def cleanup_old_pending():
 def gallery():
     ensure_db_restored_from_r2()
     cleanup_old_pending()
+    enforce_gallery_limit()
 
     db = get_db()
     rows = db.execute(
@@ -154,16 +155,16 @@ def gallery():
         FROM images
         WHERE status IN ('pending', 'approved')
         ORDER BY uploaded_at DESC, id DESC
-        """
+        LIMIT ?
+        """,
+        (app.config["MAX_GALLERY_ITEMS"],)
     ).fetchall()
 
     images = [dict(row) for row in rows]
 
-    approved_positions = [i for i, img in enumerate(images) if img["status"] == "approved"]
-    fading_positions = set(approved_positions[-5:]) if approved_positions else set()
-
+    fade_start = max(len(images) - 5, 0)
     for i, img in enumerate(images):
-        img["fading"] = i in fading_positions
+        img["fading"] = i >= fade_start
 
     return render_template("gallery.html", images=images)
 
@@ -206,6 +207,8 @@ def upload():
                 (file.filename, file_url, storage_key, caption, "pending", media_type, uploaded_at),
             )
             db.commit()
+
+            enforce_gallery_limit()
 
             flash("Uploaded. Marked for approval.", "success")
             return redirect(url_for("gallery"))
@@ -263,6 +266,7 @@ def admin_logout():
 @app.route("/admin")
 def admin_dashboard():
     ensure_db_restored_from_r2()
+    enforce_gallery_limit()
 
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
@@ -274,7 +278,14 @@ def admin_dashboard():
     ).fetchall()
 
     approved = db.execute(
-        "SELECT * FROM images WHERE status = 'approved' ORDER BY uploaded_at DESC, id DESC LIMIT 50"
+        """
+        SELECT *
+        FROM images
+        WHERE status = 'approved'
+        ORDER BY uploaded_at DESC, id DESC
+        LIMIT ?
+        """,
+        (app.config["MAX_GALLERY_ITEMS"],)
     ).fetchall()
 
     return render_template("admin.html", pending=pending, approved=approved)
@@ -316,7 +327,7 @@ def approve(image_id):
             uploaded_at=row["uploaded_at"] or now_iso(),
         )
 
-    enforce_approved_limit()
+    enforce_gallery_limit()
     flash("Approved.", "success")
     return redirect(url_for("admin_dashboard"))
 

@@ -13,7 +13,7 @@ class Config:
     IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"}
     VIDEO_EXTENSIONS = {"mp4", "webm"}
 
-    MAX_APPROVED_IMAGES = 50
+    MAX_GALLERY_ITEMS = 50
 
     R2_ACCESS_KEY = os.getenv("R2_ACCESS_KEY")
     R2_SECRET_KEY = os.getenv("R2_SECRET_KEY")

@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Ephemera{% endblock %}
+{% block title %}Ephemeral Share{% endblock %}
 
 {% block content %}
 <section class="hero-card">
-    <h1 class="hero-title">Ephemera</h1>
+    <h1 class="hero-title">Ephemeral Share</h1>
     <p class="hero-copy">
-        A rolling gallery of images and video. New uploads appear right away in masked form,
-        then become fully visible once approved.
+        A rolling gallery of images and video. Ephemera keeps only the newest
+        50 uploads.
     </p>
     <div class="hero-meta">
         <span class="meta-pill">{{ images|length }} visible artifacts</span>
         <span class="meta-pill">pending uploads are masked</span>
-        <span class="meta-pill">oldest approved 5 are fading awayyyyy…</span>
+        <span class="meta-pill">oldest 5 are fading awayyyyy…</span>
     </div>
 </section>
 
@@ -35,6 +35,7 @@
                             src="{{ img.file_url }}"
                             class="{% if img.status != 'approved' %}blur{% endif %}"
                             alt="{{ img.caption or 'uploaded media' }}"
+                            loading="lazy"
                         >
                     {% endif %}
 
